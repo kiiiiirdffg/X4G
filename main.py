@@ -1286,26 +1286,18 @@ async def login_page():
 
 try:
 
-    from main import (
-    LINKS,
-    LINKS_LOCK,
-    stats,
-    hourly_traffic,
-    connections,
-    error_logs,
-    logger,
-    is_link_allowed,
-    is_ip_allowed,
-    save_state,
-    log_activity,
-    now_ir,
-        )
+    from relay_vless import websocket_tunnel
 
+    app.add_api_websocket_route(
+        "/ws/{uuid}",
+        websocket_tunnel
+    )
 
+except Exception as e:
 
-try:
-
-    from xhttp_siz10 import router as xhttp_router
+    logger.warning(
+        f"relay disabled: {e}"
+    )
 
     app.include_router(
         xhttp_router
