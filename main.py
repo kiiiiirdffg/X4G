@@ -953,25 +953,15 @@ async def me(
 async def stats_api(
     _=Depends(require_auth)
 ):
-
     return {
-
-        "connections":
-            len(connections),
-
-        "traffic":
-            fmt_bytes(
-                stats["total_bytes"]
-            ),
-
-        "requests":
-            stats["total_requests"],
-
-        "errors":
-            stats["total_errors"]
-
+        "connections": len(connections),
+        "traffic": fmt_bytes(stats["total_bytes"]),
+        "requests": stats["total_requests"],
+        "errors": stats["total_errors"]
     }
-    @app.get("/api/activity")
+
+
+@app.get("/api/activity")
 async def activity(
     _=Depends(require_auth)
 ):
