@@ -27,7 +27,6 @@ app = FastAPI(
     title="X4G",
     docs_url=None,
     redoc_url=None,
-    lifespan=lifespan
 )
 
 # ── Persistence ───────────────────────────────────────────────────────────────
