@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 from urllib.parse import quote
 from collections import deque, defaultdict
 from pathlib import Path
-
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconnect, Depends
 from fastapi.responses import Response, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,7 +23,12 @@ logger = logging.getLogger("X4G")
 
 IRAN_TZ = ZoneInfo("Asia/Tehran")
 
-app = FastAPI(title="X4G", docs_url=None, redoc_url=None)
+app = FastAPI(
+    title="X4G",
+    docs_url=None,
+    redoc_url=None,
+    lifespan=lifespan
+)
 
 # ── Persistence ───────────────────────────────────────────────────────────────
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
@@ -190,23 +195,44 @@ async def require_auth(request: Request):
     return token
 
 # ── Startup / Shutdown ────────────────────────────────────────────────────────
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     global http_client
-    limits = httpx.Limits(max_connections=500, max_keepalive_connections=100)
-    timeout = httpx.Timeout(30.0, connect=10.0)
-    http_client = httpx.AsyncClient(
-        limits=limits, timeout=timeout, follow_redirects=True,
+
+    limits = httpx.Limits(
+        max_connections=500,
+        max_keepalive_connections=100
     )
+
+    timeout = httpx.Timeout(
+        30.0,
+        connect=10.0
+    )
+
+    http_client = httpx.AsyncClient(
+        limits=limits,
+        timeout=timeout,
+        follow_redirects=True
+    )
+
     await load_state()
     await _tg_start_bot()
-    log_activity("system", "سرور راه‌اندازی شد", "ok")
-    logger.info(f"X4G v9.5 started on port {CONFIG['port']}")
 
-@app.on_event("shutdown")
-async def shutdown():
+    log_activity(
+        "system",
+        "سرور راه‌اندازی شد",
+        "ok"
+    )
+
+    logger.info(
+        f"X4G v9.5 started on port {CONFIG['port']}"
+    )
+
+    yield
+
     await save_state()
     await _tg_stop_bot()
+
     if http_client:
         await http_client.aclose()
 
