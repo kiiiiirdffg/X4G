@@ -1,9 +1,13 @@
+```python
 import asyncio
 import json
 import os
 import hashlib
 import secrets
 import time
+import stat
+import subprocess
+import urllib.request
 import aiofiles
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -1321,8 +1325,48 @@ async def test_ws():
     }
 
 
+def start_cloudflared():
+
+    token = os.environ.get("CF_TUNNEL_TOKEN")
+
+    if not token:
+        logger.warning("CF_TUNNEL_TOKEN تنظیم نشده، cloudflared اجرا نمیشه")
+        return
+
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+        cf_path = DATA_DIR / "cloudflared"
+        cf_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
+
+        logger.info("در حال دانلود cloudflared...")
+
+        urllib.request.urlretrieve(cf_url, cf_path)
+
+        current_mode = cf_path.stat().st_mode
+        cf_path.chmod(current_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+
+        logger.info("cloudflared دانلود شد")
+
+        log_file = open(DATA_DIR / "cloudflared.log", "a")
+
+        subprocess.Popen(
+            [str(cf_path), "tunnel", "run", "--token", token],
+            stdout=log_file,
+            stderr=log_file,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+        logger.info("cloudflared در پس‌زمینه اجرا شد")
+
+    except Exception as e:
+        logger.warning(f"cloudflared start failed: {e}")
+
 
 if __name__ == "__main__":
+
+    start_cloudflared()
 
     uvicorn.run(
         "main:app",
@@ -1336,3 +1380,4 @@ if __name__ == "__main__":
 
         workers=1
     )
+```
