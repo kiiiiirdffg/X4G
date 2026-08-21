@@ -1,4 +1,3 @@
-```python
 import asyncio
 import json
 import os
@@ -1325,6 +1324,12 @@ async def test_ws():
     }
 
 
+# ===================== Cloudflare Tunnel auto-launch =====================
+# هر بار main.py اجرا میشه (یعنی هر بار کانتینر بالا میاد)، cloudflared رو
+# از اینترنت دانلود میکنه (چون دیسک /data پایدار نیست) و در پس‌زمینه اجرا
+# میکنه تا تونل به Cloudflare وصل بشه. اگر CF_TUNNEL_TOKEN ست نشده باشه،
+# این بخش فقط یه هشدار لاگ میکنه و کاری به X4G نداره.
+
 def start_cloudflared():
 
     token = os.environ.get("CF_TUNNEL_TOKEN")
@@ -1363,6 +1368,8 @@ def start_cloudflared():
     except Exception as e:
         logger.warning(f"cloudflared start failed: {e}")
 
+# ===========================================================================
+
 
 if __name__ == "__main__":
 
@@ -1380,4 +1387,3 @@ if __name__ == "__main__":
 
         workers=1
     )
-```
