@@ -49,7 +49,7 @@ IRAN_TZ = ZoneInfo("Asia/Tehran")
 # ============================================================
 #  Cloudflare Tunnel â€” ظ†طµط¨ ط®ظˆط¯ع©ط§ط± (ط¯ط± طµظˆط±طھ ظ†ط¨ظˆط¯) ظˆ ط§ط¬ط±ط§ ط¨ط§ watchdog
 #  ع©ط§ظ…ظ„ط§ظ‹ ظ¾ط§غŒطھظˆظ†طŒ ط¨ط¯ظˆظ† ظپط§غŒظ„ ط¬ط¯ط§طŒ ط¨ط¯ظˆظ† طھط¯ط§ط®ظ„ ط¨ط§ ظ¾ظˆط±طھ uvicorn (8000)
-#  ع†ظˆظ† ط­ط§ظ„طھ --token ظپظ‚ط· غŒع© ع©ط§ظ†ع©ط´ظ† ط®ط±ظˆط¬غŒ ظ…غŒâ€Œط²ظ†ط¯ ظˆ ظ‡غŒع† ظ¾ظˆط±طھغŒ ط¨ط§غŒظ†ط¯ ظ†ظ…غŒâ€Œع©ظ†ط¯ط›
+#  ع†ظˆظ† ط­ط§ظ„طھ --token ظپظ‚ط· غŒع© ع©ط§ظ†ع©ط´ظ† ط®ط±ظˆط¬غŒ ظ…غŒâ€Œط²ظ†ط¯ ظˆ ظ‡غŒع† ظ¾ظˆط±طھغŒ ط¨ط§غŒظ†ظ€ط¯ ظ†ظ…غŒâ€Œع©ظ†ط¯ط›
 #  ظ†ع¯ط§ط´طھ ط³ط±ظˆغŒط³ (localhost:8000) ط§ط² ط¯ط§ط´ط¨ظˆط±ط¯ Cloudflare Zero Trust ظ…غŒâ€Œط¢غŒط¯.
 # ============================================================
 
@@ -146,7 +146,7 @@ async def _cf_install() -> bool:
 async def _cf_spawn(token: str):
     binary = _cf_resolve_binary()
     try:
-        # ظ†ع©طھظ‡â€ŒغŒ ظ…ظ‡ظ…: --no-autoupdate ظپظ„ع¯ظگ ط²غŒط±ط¯ط³طھظˆط± آ«tunnelآ» ط§ط³طھطŒ ظ†ظ‡ آ«runآ».
+        # ظ†ع©طھظ‡â€ŒغŒ ظ…ظ‡ظ…: --no-autoupdate ظپظ„ع¯ ط²غŒط±ط¯ط³طھظˆط± آ«tunnelآ» ط§ط³طھطŒ ظ†ظ‡ آ«runآ».
         # ط¨ط§غŒط¯ ظ‚ط¨ظ„ ط§ط² run ط¨غŒط§غŒط¯طŒ ظˆع¯ط±ظ†ظ‡ cloudflared ط¨ط§ ط®ط·ط§غŒ
         # "flag provided but not defined: -no-autoupdate" ط¨ظ„ط§ظپط§طµظ„ظ‡ ط®ط§ط±ط¬ ظ…غŒâ€Œط´ظˆط¯.
         return await asyncio.create_subprocess_exec(
@@ -243,6 +243,46 @@ async def stop_cloudflare_tunnel():
             await _cf_watchdog_task
         except Exception:
             pass
+
+
+# ============================================================
+#  Cloudflare Origin Certificate â€” ظ†ظˆط´طھظ† ع¯ظˆط§ظ‡غŒ/ع©ظ„غŒط¯ ط§ط² env var
+#  ط¨ظ‡ ظپط§غŒظ„ ظ…ظˆظ‚طھ ط±ظˆغŒ /tmp طھط§ uvicorn ط¨طھظˆظ†ظ‡ ط¨ط§ HTTPS ظˆط§ظ‚ط¹غŒ ط¨ط§ظ„ط§ ط¨غŒط§ط¯
+#  (ع†ظˆظ† ط¯غŒط³ع© ظ¾ط§غŒط¯ط§ط± ظ†ط¯ط§ط±غŒظ…طŒ ظ‡ط± ط¨ط§ط± ط§ط³طھط§ط±طھ ط¯ظˆط¨ط§ط±ظ‡ ط§ط² env var ظ†ظˆط´طھظ‡ ظ…غŒâ€Œط´ظ‡)
+# ============================================================
+
+CF_ORIGIN_CERT_ENV = "CF_ORIGIN_CERT"
+CF_ORIGIN_KEY_ENV = "CF_ORIGIN_KEY"
+
+
+def _write_ssl_files():
+    cert = os.environ.get(CF_ORIGIN_CERT_ENV, "").strip()
+    key = os.environ.get(CF_ORIGIN_KEY_ENV, "").strip()
+
+    if not cert or not key:
+        logger.info("CF_ORIGIN_CERT / CF_ORIGIN_KEY ط³طھ ظ†ط´ط¯ظ‡ â€” uvicorn ط±ظˆغŒ HTTP ط³ط§ط¯ظ‡ ط¨ط§ظ„ط§ ظ…غŒâ€Œط¢غŒط¯")
+        return None, None
+
+    # ط§ع¯ظ‡ env var ط¨ط§ \n ظ„غŒطھط±ط§ظ„ (ط¨ع©â€Œط§ط³ظ„ط´-ط§ظ†) ط°ط®غŒط±ظ‡ ط´ط¯ظ‡ ط¨ط§ط´ظ‡ (ط¨ط¹ط¶غŒ ظ¾ظ†ظ„â€Œظ‡ط§ ط®ط· ط¬ط¯غŒط¯ ظˆط§ظ‚ط¹غŒ ط±ظˆ ظ‚ط¨ظˆظ„ ظ†ظ…غŒâ€Œع©ظ†ظ†)
+    cert = cert.replace("\\n", "\n")
+    key = key.replace("\\n", "\n")
+
+    try:
+        cert_path = Path("/tmp") / "cf_origin.pem"
+        key_path = Path("/tmp") / "cf_origin.key"
+
+        cert_path.write_text(cert, encoding="utf-8")
+        key_path.write_text(key, encoding="utf-8")
+
+        # ظپظ‚ط· طµط§ط­ط¨ ظپط§غŒظ„ ط¨طھظˆظ†ظ‡ ع©ظ„غŒط¯ ط®طµظˆطµغŒ ط±ظˆ ط¨ط®ظˆظ†ظ‡
+        key_path.chmod(0o600)
+
+        logger.info("ع¯ظˆط§ظ‡غŒ Cloudflare Origin ط±ظˆغŒ /tmp ظ†ظˆط´طھظ‡ ط´ط¯ â€” uvicorn ط¨ط§ HTTPS ط¨ط§ظ„ط§ ظ…غŒâ€Œط¢غŒط¯")
+        return str(cert_path), str(key_path)
+
+    except Exception as e:
+        logger.error(f"ظ†ظˆط´طھظ† ظپط§غŒظ„â€Œظ‡ط§غŒ SSL ط´ع©ط³طھ ط®ظˆط±ط¯: {e}")
+        return None, None
 
 
 app = FastAPI(
@@ -702,7 +742,7 @@ PROTOCOLS = (
     "xhttp-packet-up",
     "xhttp-stream-up",
     # طھظˆط¬ظ‡: "xhttp-stream-one" ط¯ط± xhttp_siz10.py ط­ط°ظپ ط´ط¯ظ‡طŒ ط«ط¨طھ ظ†ع©ظ†
-    # ط±ظˆط´ ظ†ظˆ ظ…غŒظ€ط¢غŒط¯ (ظپظ‚ط· packet-up ظˆ stream-up ظ¾ط´طھغŒط¨ط§ظ†غŒ ظ…غŒâ€Œط´ظˆظ†ط¯).
+    # ط±ظˆط´ ظ†ظˆ ظ…غŒâ€Œط¢غŒط¯ (ظپظ‚ط· packet-up ظˆ stream-up ظ¾ط´طھغŒط¨ط§ظ†غŒ ظ…غŒâ€Œط´ظˆظ†ط¯).
 )
 
 DEFAULT_PROTOCOL = "vless-ws"
@@ -1276,7 +1316,7 @@ async def delete_sub(sub_id: str, _=Depends(require_auth)):
 
 
 # ============================================================
-#  ط³ط§ط¨ط³ع©ط±ط§غŒظ¾ط´ظ†â€Œظ‡ط§ (ظ„غŒظ†ع© / ط§ط¯ط؛ط§ظ…)
+#  ط³ط§ط¨â€Œط³ع©ط±ط§غŒظ¾ط´ظ†â€Œظ‡ط§ (ظ„غŒظ†ع© / ط§ط¯ط؛ط§ظ…)
 # ============================================================
 
 @app.get("/sub/{uid}")
@@ -1516,9 +1556,13 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 if __name__ == "__main__":
 
+    ssl_cert, ssl_key = _write_ssl_files()
+
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 8000)),
-        workers=1
+        workers=1,
+        ssl_certfile=ssl_cert,
+        ssl_keyfile=ssl_key,
     )
