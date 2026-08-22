@@ -402,7 +402,7 @@ async def websocket_tunnel(
 
         main.log_activity(
             "connection",
-            f"اتصال {ip} رد شد",
+            f"ط§طھطµط§ظ„ {ip} ط±ط¯ ط´ط¯",
             "warn"
         )
 
