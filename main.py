@@ -55,7 +55,14 @@ IRAN_TZ = ZoneInfo("Asia/Tehran")
 
 CF_TUNNEL_TOKEN_ENV = "CF_TUNNEL_TOKEN"
 
-_cf_bin_dir = Path(os.environ.get("DATA_DIR", "/data")) / "bin"
+def _cf_pick_bin_dir() -> Path:
+    # ط¯غŒط³ع© ظ¾ط§غŒط¯ط§ط± ظ†ط¯ط§ط±غŒطŒ ظ¾ط³ ظ‡ظ…غŒط´ظ‡ /tmp â€” ظ‡ط± ط±غŒâ€Œط§ط³طھط§ط±طھ ط¯ظˆط¨ط§ط±ظ‡ ط¯ط§ظ†ظ„ظˆط¯ ظ…غŒâ€Œط´ظ‡ ظˆظ„غŒ ظ…ط´ع©ظ„غŒ ظ†غŒط³طھ
+    d = Path("/tmp") / "x4g_bin"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+_cf_bin_dir = _cf_pick_bin_dir()
 _cf_bin_path = _cf_bin_dir / "cloudflared"
 _cf_release_base = "https://github.com/cloudflare/cloudflared/releases/latest/download"
 
@@ -112,6 +119,22 @@ async def _cf_install() -> bool:
         _cf_bin_path.chmod(
             _cf_bin_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
         )
+
+        # طھط³طھ ط§ط¬ط±ط§ ط´ط¯ظ† ط¨ط§غŒظ†ط±غŒ ظ‚ط¨ظ„ ط§ط² ط§ط¹ظ„ط§ظ… ظ…ظˆظپظ‚غŒطھ
+        try:
+            test = await asyncio.create_subprocess_exec(
+                str(_cf_bin_path), "--version",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            out, _ = await asyncio.wait_for(test.communicate(), timeout=15)
+            if test.returncode != 0:
+                logger.error(f"ط¨ط§غŒظ†ط±غŒ cloudflared ط§ط¬ط±ط§ ظ†ط´ط¯ (ع©ط¯ {test.returncode}): {out.decode(errors='ignore')}")
+                return False
+        except Exception as e:
+            logger.error(f"طھط³طھ ط§ط¬ط±ط§غŒ cloudflared ط´ع©ط³طھ ط®ظˆط±ط¯ (ط§ط­طھظ…ط§ظ„ط§ظ‹ noexec غŒط§ ظ…ط¹ظ…ط§ط±غŒ ط§ط´طھط¨ط§ظ‡): {e}")
+            return False
+
         logger.info(f"cloudflared ظ†طµط¨ ط´ط¯ ط¯ط± {_cf_bin_path}")
         return True
 
@@ -709,6 +732,10 @@ FINGERPRINTS = (
 DEFAULT_FINGERPRINT = "chrome"
 
 
+DEFAULT_PORT = 31467
+DEFAULT_SECURITY = "none"  # ظ¾ط´طھ طھط§ظ†ظ„ ع©ظ„ظˆط¯ظپظ„ط±طŒ TLS ط±ظˆ ط®ظˆط¯ ع©ظ„ظˆط¯ظپظ„ط± طھط±ظ…غŒظ†غŒطھ ظ…غŒâ€Œع©ظ†ظ‡ط› ظ†غŒط§ط²غŒ ط¨ظ‡ tls ط±ظˆغŒ ط¨ع©â€Œط§ظ†ط¯ ظ†غŒط³طھ
+
+
 def generate_vless_link(
     uuid,
     host,
@@ -716,7 +743,8 @@ def generate_vless_link(
     protocol=DEFAULT_PROTOCOL,
     fingerprint=DEFAULT_FINGERPRINT,
     alpn="",
-    port=443
+    port=DEFAULT_PORT,
+    security=DEFAULT_SECURITY
 ):
 
     fp = fingerprint
@@ -727,7 +755,7 @@ def generate_vless_link(
         path = f"/ws/{uuid}"
         params = {
             "encryption": "none",
-            "security": "tls",
+            "security": security,
             "type": "ws",
             "host": host,
             "path": path,
@@ -740,7 +768,7 @@ def generate_vless_link(
         path = f"/xhttp-siz10/{mode}/{uuid}"
         params = {
             "encryption": "none",
-            "security": "tls",
+            "security": security,
             "type": "xhttp",
             "mode": mode,
             "host": host,
@@ -981,7 +1009,7 @@ async def list_links(request: Request, _=Depends(require_auth)):
                     link.get("protocol", DEFAULT_PROTOCOL),
                     link.get("fingerprint", DEFAULT_FINGERPRINT),
                     link.get("alpn", ""),
-                    link.get("port", 443)
+                    link.get("port", DEFAULT_PORT)
                 ),
                 "sub_url": f"{base}/sub/{uid}",
             })
@@ -1019,10 +1047,10 @@ async def create_link(request: Request, _=Depends(require_auth)):
                 sub_id = None
 
     try:
-        port = int(body.get("port", 443) or 443)
+        port = int(body.get("port", DEFAULT_PORT) or DEFAULT_PORT)
         port = max(1, min(65535, port))
     except (TypeError, ValueError):
-        port = 443
+        port = DEFAULT_PORT
 
     link = {
         "label": str(body.get("label", "ط·آ¸أ¢â‚¬â€چط·ط›ط¥â€™ط·آ¸أ¢â‚¬ ط·آ¹ط¢آ© ط·آ·ط¢آ¬ط·آ·ط¢آ¯ط·ط›ط¥â€™ط·آ·ط¢آ¯"))[:60] or "ط·آ¸أ¢â‚¬â€چط·ط›ط¥â€™ط·آ¸أ¢â‚¬ ط·آ¹ط¢آ© ط·آ·ط¢آ¬ط·آ·ط¢آ¯ط·ط›ط¥â€™ط·آ·ط¢آ¯",
@@ -1281,7 +1309,7 @@ async def sub_single(uid: str, request: Request):
             link.get("protocol", DEFAULT_PROTOCOL),
             link.get("fingerprint", DEFAULT_FINGERPRINT),
             link.get("alpn", ""),
-            link.get("port", 443),
+            link.get("port", DEFAULT_PORT),
         )
 
     return Response(content=vless, media_type="text/plain; charset=utf-8")
@@ -1314,7 +1342,7 @@ async def sub_group(sub_id: str, request: Request, pw: str = ""):
                 link.get("protocol", DEFAULT_PROTOCOL),
                 link.get("fingerprint", DEFAULT_FINGERPRINT),
                 link.get("alpn", ""),
-                link.get("port", 443),
+                link.get("port", DEFAULT_PORT),
             ))
 
     return build_subscription(lines)
@@ -1343,7 +1371,7 @@ async def sub_all(request: Request, _=Depends(require_auth)):
                 link.get("protocol", DEFAULT_PROTOCOL),
                 link.get("fingerprint", DEFAULT_FINGERPRINT),
                 link.get("alpn", ""),
-                link.get("port", 443),
+                link.get("port", DEFAULT_PORT),
             ))
 
     return build_subscription(lines)
@@ -1389,7 +1417,7 @@ async def public_sub_info(sub_id: str, request: Request, pw: str = ""):
                     link.get("protocol", DEFAULT_PROTOCOL),
                     link.get("fingerprint", DEFAULT_FINGERPRINT),
                     link.get("alpn", ""),
-                    link.get("port", 443),
+                    link.get("port", DEFAULT_PORT),
                 ),
                 "sub_url": f"{base}/sub/{uid}",
             })
