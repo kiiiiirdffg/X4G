@@ -1623,11 +1623,11 @@ async function deleteLink(uuid){
   try{const r=await authF('/api/links/'+uuid,{method:'DELETE'});if(!r.ok)throw new Error();toast('ط­ط°ظپ ط´ط¯ âœ“','ok');loadLinks();}catch(e){toast('ط®ط·ط§','err')}
 }
 function showQR(link){
-  const w=window.open('','_blank','width=430,height=560');
+  const w=window.open('','_blank','width=430,height=620');
   if(!w)return;
   const data=encodeURIComponent(link);
   const logo="data:image/png;base64,__LOGO_B64__";
-  w.document.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ASHKANPC QR</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 0%,rgba(59,130,246,.14),transparent 48%),#050b14;font-family:Arial,sans-serif;color:#fff;padding:18px}.box{background:rgba(12,20,34,.72);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:22px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}.qr{position:relative;background:#fff;padding:12px;border-radius:18px;display:inline-block;box-shadow:0 12px 30px rgba(0,0,0,.3)}.qr img.qr-code{width:300px;height:300px;display:block}.qr-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:62px;height:62px;border-radius:16px;background:rgba(255,255,255,.86);border:1px solid rgba(0,0,0,.14);box-shadow:0 5px 18px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.95);padding:10px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}.qr-logo img{width:100%;height:100%;object-fit:contain;filter:grayscale(1) brightness(0)}.brand{margin-top:16px;font-weight:900;letter-spacing:.12em;color:#111;font-size:14px;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.5);display:inline-block;padding:7px 13px;border-radius:12px;box-shadow:0 5px 18px rgba(0,0,0,.22)}.small{margin-top:7px;font-size:11px;color:#8aa5bf}</style></head><body><div class=box><div class=qr><img class=qr-code src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=H&margin=2&data='+data+'"><div class=qr-logo><img src="'+logo+'" alt="ASHKANPC"></div></div><div class=brand>ASHKANPC</div><div class=small>QR Configuration</div></div></body></html>');
+  w.document.write('<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ASHKANPC QR</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 0%,rgba(59,124,246,.18),transparent 55%),#04070f;font-family:Arial,sans-serif;color:#fff;padding:18px}.box{background:linear-gradient(165deg,rgba(24,34,58,.92) 0%,rgba(10,16,32,.96) 100%);border:1px solid rgba(120,160,255,.22);border-radius:26px;padding:28px 26px 24px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04) inset;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);position:relative;overflow:hidden}.box::before{content:"";position:absolute;top:-60px;left:-30px;width:200px;height:200px;background:radial-gradient(circle,rgba(59,124,246,.22),transparent 70%);pointer-events:none}.box::after{content:"";position:absolute;bottom:-60px;right:-30px;width:200px;height:200px;background:radial-gradient(circle,rgba(157,123,240,.16),transparent 70%);pointer-events:none}.qr{position:relative;background:#fff;padding:14px;border-radius:18px;display:inline-block;box-shadow:0 16px 40px rgba(0,0,0,.35);z-index:1}.qr img.qr-code{width:280px;height:280px;display:block;border-radius:8px}.qr-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:58px;height:58px;border-radius:15px;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.1);box-shadow:0 5px 18px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.95);padding:8px;display:flex;align-items:center;justify-content:center}.qr-logo img{width:100%;height:100%;object-fit:contain;filter:grayscale(1) brightness(0)}.handle{display:inline-flex;align-items:center;gap:7px;margin-top:18px;padding:8px 18px;border-radius:30px;background:rgba(120,160,255,.1);border:1px solid rgba(120,160,255,.28);position:relative;z-index:1}.handle svg{width:14px;height:14px;fill:#6EA3FF}.handle span{font-size:12.5px;font-weight:800;letter-spacing:.03em;color:#EFF4FF;font-family:ui-monospace,monospace}.hint{margin-top:9px;font-size:9.5px;color:#5B6C90;position:relative;z-index:1}</style></head><body><div class=box><div class=qr><img class=qr-code src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&ecc=H&margin=2&data='+data+'"><div class=qr-logo><img src="'+logo+'" alt="ASHKANPC"></div></div><div class=handle><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.5 0 2.5-.5 2.5-.5l-.5-1.7s-.7.4-2 .4c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8c0 2-1 3-2 3s-1.3-.8-1.2-1.8l.5-4.2h-1.6l-.1.7c-.4-.6-1-1-1.9-1-1.9 0-3.5 1.7-3.5 4 0 1.9 1.2 3.2 2.8 3.2.9 0 1.6-.4 2.1-1.1.3.7 1 1.1 1.9 1.1 2.1 0 3.7-1.9 3.7-4.7C22 6.4 17.6 2 12 2zm.3 12.5c-.8 0-1.3-.7-1.3-1.7 0-1.3.8-2.3 1.9-2.3.8 0 1.3.7 1.3 1.7 0 1.3-.9 2.3-1.9 2.3z"/></svg><span>@achkanpc</span></div><div class=hint>ASHKANPC آ· ط§ط³ع©ظ† ع©ظ† ظˆ ظˆطµظ„ ط´ظˆ</div></div></body></html>');
   w.document.close();
 }
 let allSubsRaw=[];
@@ -2186,15 +2186,20 @@ html,body{{min-height:100%;background:var(--bg);font-family:var(--serif);color:v
 .toast.show{{opacity:1;transform:translateX(-50%) translateY(0)}}
 .toast.ok{{border-color:rgba(31,184,126,.35);background:var(--green-bg);color:var(--green-t)}}
 
-.qr-modal{{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:20px}}
+.qr-modal{{display:none;position:fixed;inset:0;background:rgba(3,6,14,.82);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(10px);padding:20px}}
 .qr-modal.open{{display:flex}}
-.qr-box{{background:var(--card);border:1px solid var(--card-b);border-radius:22px;padding:26px;text-align:center;max-width:340px;width:100%;box-shadow:var(--shadow)}}
-.qr-title{{font-size:13.5px;font-weight:800;margin-bottom:16px;color:var(--t1)}}
-.qr-img{{border-radius:14px;overflow:hidden;margin-bottom:15px}}
-.qr-img{{position:relative;background:#fff;padding:10px;border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.22);overflow:hidden}}
+.qr-box{{background:linear-gradient(165deg,rgba(24,34,58,.92) 0%,rgba(10,16,32,.96) 100%);border:1px solid rgba(120,160,255,.22);border-radius:26px;padding:28px 26px 24px;text-align:center;max-width:340px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04) inset,0 1px 0 rgba(255,255,255,.06) inset;position:relative;overflow:hidden}}
+.qr-box::before{{content:'';position:absolute;top:-60px;left:-30px;width:200px;height:200px;background:radial-gradient(circle,rgba(59,124,246,.22),transparent 70%);pointer-events:none}}
+.qr-box::after{{content:'';position:absolute;bottom:-60px;right:-30px;width:200px;height:200px;background:radial-gradient(circle,rgba(157,123,240,.16),transparent 70%);pointer-events:none}}
+.qr-title{{font-size:13.5px;font-weight:800;margin-bottom:16px;color:#EFF4FF;position:relative;z-index:1}}
+.qr-img{{position:relative;background:#fff;padding:14px;border-radius:18px;box-shadow:0 16px 40px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.5) inset;overflow:hidden;z-index:1}}
 .qr-img img{{width:100%;display:block;background:#fff;border-radius:10px}}
-.qr-logo-overlay{{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:58px;height:58px;border-radius:15px;background:rgba(255,255,255,.88);border:1px solid rgba(0,0,0,.14);box-shadow:0 5px 18px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.95);padding:9px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:2}}
+.qr-logo-overlay{{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:15px;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.1);box-shadow:0 5px 18px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.95);padding:8px;display:flex;align-items:center;justify-content:center;z-index:2}}
 .qr-logo-overlay img{{width:100%!important;height:100%;object-fit:contain;background:transparent!important;padding:0!important;border-radius:0!important;filter:grayscale(1) brightness(0)}}
+.qr-handle{{display:inline-flex;align-items:center;gap:7px;margin-top:16px;padding:8px 18px;border-radius:30px;background:rgba(120,160,255,.1);border:1px solid rgba(120,160,255,.28);backdrop-filter:blur(8px);position:relative;z-index:1}}
+.qr-handle i{{font-size:14px;color:#6EA3FF}}
+.qr-handle span{{font-size:12.5px;font-weight:800;letter-spacing:.03em;color:#EFF4FF;font-family:ui-monospace,monospace}}
+.qr-hint{{margin-top:10px;font-size:9.5px;color:#5B6C90;position:relative;z-index:1}}
 
 .footer{{text-align:center;padding-top:28px;font-size:10.5px;color:var(--t3)}}
 .footer a{{color:var(--accent2);font-weight:700}}
@@ -2241,7 +2246,9 @@ html,body{{min-height:100%;background:var(--bg);font-family:var(--serif);color:v
   <div class="qr-box" onclick="event.stopPropagation()">
     <div class="qr-title" id="qr-label">QR Code</div>
     <div class="qr-img"><img id="qr-img" src="" alt="QR"></div>
-    <button class="btn btn-g" style="width:100%;justify-content:center" onclick="document.getElementById('qr-modal').classList.remove('open')"><i class="ti ti-x"></i> ط¨ط³طھظ†</button>
+    <div class="qr-handle"><i class="ti ti-brand-telegram"></i><span>@achkanpc</span></div>
+    <div class="qr-hint">ASHKANPC آ· ط§ط³ع©ظ† ع©ظ† ظˆ ظˆطµظ„ ط´ظˆ</div>
+    <button class="btn btn-g" style="width:100%;justify-content:center;margin-top:16px" onclick="document.getElementById('qr-modal').classList.remove('open')"><i class="ti ti-x"></i> ط¨ط³طھظ†</button>
   </div>
 </div>
 <div class="wrap">
@@ -2303,7 +2310,6 @@ function showQR(label,link){{
   document.getElementById('qr-label').textContent=label;
   const img=document.getElementById('qr-img');
   img.src='https://api.qrserver.com/v1/create-qr-code/?size=280x280&ecc=H&margin=2&data='+encodeURIComponent(link);
-  img.dataset.qrBrand='ASHKANPC';
   const host=img.parentElement;
   let logo=host.querySelector('.qr-logo-overlay');
   if(!logo){{
