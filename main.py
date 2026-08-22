@@ -254,18 +254,48 @@ async def stop_cloudflare_tunnel():
 CF_ORIGIN_CERT_ENV = "CF_ORIGIN_CERT"
 CF_ORIGIN_KEY_ENV = "CF_ORIGIN_KEY"
 
+import re
+import ssl as _ssl_module
+
+
+def _normalize_pem(raw: str, label_hint: str) -> str:
+    """
+    Env varظ‡ط§غŒ ظ¾ظ†ظ„â€Œظ‡ط§غŒ ظ‡ط§ط³طھغŒظ†ع¯ ع¯ط§ظ‡غŒ ط®ط·â€Œط¬ط¯غŒط¯ ظˆط§ظ‚ط¹غŒ ط±ظˆ ظ…ظˆظ‚ط¹ ط°ط®غŒط±ظ‡ ط­ط°ظپ ظ…غŒâ€Œع©ظ†ظ† ظˆ ع©ظ„
+    PEM ط±ظˆ غŒع©â€Œط®ط·غŒ/ع†ط³ط¨غŒط¯ظ‡ ظ…غŒâ€Œع©ظ†ظ†. ط§غŒظ† طھط§ط¨ط¹ ظ‡ط± ط´ع©ظ„غŒ ع©ظ‡ ط¨ط§ط´ظ‡ (ط®ط·â€Œط¬ط¯غŒط¯ ظˆط§ظ‚ط¹غŒطŒ \n
+    ظ„غŒطھط±ط§ظ„طŒ غŒط§ ع©ط§ظ…ظ„ط§ظ‹ غŒع©â€Œط®ط·غŒ ط¨ط¯ظˆظ† ظ‡غŒع† ط¬ط¯ط§ع©ظ†ظ†ط¯ظ‡â€Œط§غŒ) ط±ظˆ ط¨ظ‡ ظپط±ظ…طھ ط§ط³طھط§ظ†ط¯ط§ط±ط¯ PEM
+    (ط®ط·ظˆط· غ¶غ´ ع©ط§ط±ط§ع©طھط±غŒ ط¨غŒظ† BEGIN/END) ط¨ط§ط²ظ…غŒâ€Œع¯ط±ط¯ظˆظ†ظ‡.
+    """
+    raw = raw.strip()
+    raw = raw.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\r\n", "\n")
+
+    lines = [l.strip() for l in raw.split("\n") if l.strip()]
+
+    # ظ‡ظ…غŒط´ظ‡ (ع†ظ‡ غŒع©â€Œط®ط·غŒطŒ ع†ظ‡ ع†ظ†ط¯ط®ط·غŒ) ط®ط·ظˆط· ط±ظˆ ع©ط§ظ…ظ„ط§ظ‹ ط¨ظ‡ظ… ظ…غŒâ€Œع†ط³ط¨ظˆظ†غŒظ… ظˆ ط§ط² ظ†ظˆ ط¨ط§
+    # ط®ط·â€Œظ‡ط§غŒ غ¶غ´ع©ط§ط±ط§ع©طھط±غŒ ظ…غŒâ€Œط³ط§ط²غŒظ…. ط§غŒظ† ع©ط§ط± ظ„ط§ط²ظ…ظ‡ ع†ظˆظ† ع¯ط§ظ‡غŒ ع©ظ¾غŒâ€Œظ¾غŒط³طھ ظ…ظˆط¨ط§غŒظ„ ظپظ‚ط·
+    # ط¨ط¹ط¶غŒ ط®ط·â€Œظ‡ط§ ط±ظˆ ط¨ظ‡ظ… ظ…غŒâ€Œع†ط³ط¨ظˆظ†ظ‡ (ظ†ظ‡ ظ‡ظ…ظ‡)طŒ ظ¾ط³ ظ†ظ…غŒâ€Œط´ظ‡ ط¨ظ‡ طھط¹ط¯ط§ط¯ ط®ط·ظˆط· ظپط¹ظ„غŒ ط§ط¹طھظ…ط§ط¯ ع©ط±ط¯.
+    flat = "".join(lines) if lines else raw
+
+    m = re.match(r"(-----BEGIN [A-Z ]+-----)(.*?)(-----END [A-Z ]+-----)", flat)
+    if not m:
+        logger.error(f"{label_hint}: ظپط±ظ…طھ PEM ظ‚ط§ط¨ظ„ طھط´ط®غŒطµ ظ†ط¨ظˆط¯ (ظ†ظ‡ BEGIN/END ظ¾غŒط¯ط§ ط´ط¯)")
+        return raw  # ط¨ط°ط§ط± ط®ظˆط¯ط´ ط¨ط¹ط¯ط§ظ‹ fail ط¨ط´ظ‡ ط¨ط§ ط®ط·ط§غŒ ظˆط§ط¶ط­
+
+    header, body, footer = m.group(1), m.group(2).replace(" ", ""), m.group(3)
+    body_lines = [body[i:i + 64] for i in range(0, len(body), 64)]
+
+    return header + "\n" + "\n".join(body_lines) + "\n" + footer + "\n"
+
 
 def _write_ssl_files():
-    cert = os.environ.get(CF_ORIGIN_CERT_ENV, "").strip()
-    key = os.environ.get(CF_ORIGIN_KEY_ENV, "").strip()
+    cert_raw = os.environ.get(CF_ORIGIN_CERT_ENV, "").strip()
+    key_raw = os.environ.get(CF_ORIGIN_KEY_ENV, "").strip()
 
-    if not cert or not key:
+    if not cert_raw or not key_raw:
         logger.info("CF_ORIGIN_CERT / CF_ORIGIN_KEY ط³طھ ظ†ط´ط¯ظ‡ â€” uvicorn ط±ظˆغŒ HTTP ط³ط§ط¯ظ‡ ط¨ط§ظ„ط§ ظ…غŒâ€Œط¢غŒط¯")
         return None, None
 
-    # ط§ع¯ظ‡ env var ط¨ط§ \n ظ„غŒطھط±ط§ظ„ (ط¨ع©â€Œط§ط³ظ„ط´-ط§ظ†) ط°ط®غŒط±ظ‡ ط´ط¯ظ‡ ط¨ط§ط´ظ‡ (ط¨ط¹ط¶غŒ ظ¾ظ†ظ„â€Œظ‡ط§ ط®ط· ط¬ط¯غŒط¯ ظˆط§ظ‚ط¹غŒ ط±ظˆ ظ‚ط¨ظˆظ„ ظ†ظ…غŒâ€Œع©ظ†ظ†)
-    cert = cert.replace("\\n", "\n")
-    key = key.replace("\\n", "\n")
+    cert = _normalize_pem(cert_raw, "CF_ORIGIN_CERT")
+    key = _normalize_pem(key_raw, "CF_ORIGIN_KEY")
 
     try:
         cert_path = Path("/tmp") / "cf_origin.pem"
@@ -277,11 +307,20 @@ def _write_ssl_files():
         # ظپظ‚ط· طµط§ط­ط¨ ظپط§غŒظ„ ط¨طھظˆظ†ظ‡ ع©ظ„غŒط¯ ط®طµظˆطµغŒ ط±ظˆ ط¨ط®ظˆظ†ظ‡
         key_path.chmod(0o600)
 
-        logger.info("ع¯ظˆط§ظ‡غŒ Cloudflare Origin ط±ظˆغŒ /tmp ظ†ظˆط´طھظ‡ ط´ط¯ â€” uvicorn ط¨ط§ HTTPS ط¨ط§ظ„ط§ ظ…غŒâ€Œط¢غŒط¯")
+        # ظ‚ط¨ظ„ ط§ط² ط¯ط§ط¯ظ† ط§غŒظ† ظپط§غŒظ„â€Œظ‡ط§ ط¨ظ‡ uvicornطŒ ط®ظˆط¯ظ…ظˆظ† طھط³طھ ظ…غŒâ€Œع©ظ†غŒظ… ع©ظ‡ ظˆط§ظ‚ط¹ط§ظ‹
+        # ظ„ظˆط¯ ظ…غŒâ€Œط´ظ† â€” ط§ع¯ظ‡ ط®ط±ط§ط¨ ط¨ط§ط´ظ†طŒ ط¨ظ‡â€Œط¬ط§غŒ ع©ط±ط´ ع©ظ„ ط³ط±ظˆط±طŒ ظپظ‚ط· ظ„ط§ع¯ ظ…غŒâ€Œط¯غŒظ… ظˆ
+        # ط±ظˆغŒ HTTP ط³ط§ط¯ظ‡ fallback ظ…غŒâ€Œع©ظ†غŒظ… (طھط§ NodePort ظ¾ط´طھغŒط¨ط§ظ† ط²ظ†ط¯ظ‡ ط¨ظ…ظˆظ†ظ‡)
+        test_ctx = _ssl_module.SSLContext(_ssl_module.PROTOCOL_TLS_SERVER)
+        test_ctx.load_cert_chain(str(cert_path), str(key_path))
+
+        logger.info("ع¯ظˆط§ظ‡غŒ Cloudflare Origin ط±ظˆغŒ /tmp ظ†ظˆط´طھظ‡ ظˆ ط§ط¹طھط¨ط§ط±ط³ظ†ط¬غŒ ط´ط¯ â€” uvicorn ط¨ط§ HTTPS ط¨ط§ظ„ط§ ظ…غŒâ€Œط¢غŒط¯")
         return str(cert_path), str(key_path)
 
     except Exception as e:
-        logger.error(f"ظ†ظˆط´طھظ† ظپط§غŒظ„â€Œظ‡ط§غŒ SSL ط´ع©ط³طھ ط®ظˆط±ط¯: {e}")
+        logger.error(
+            f"ع¯ظˆط§ظ‡غŒ/ع©ظ„غŒط¯ SSL ظ†ط§ظ…ط¹طھط¨ط± ط¨ظˆط¯ ({e}) â€” ط§ط­طھظ…ط§ظ„ط§ظ‹ ظ…ظˆظ‚ط¹ ط°ط®غŒط±ظ‡ ط¯ط± env var ط®ط·â€Œط¬ط¯غŒط¯ظ‡ط§ ط®ط±ط§ط¨ ط´ط¯ظ‡. "
+            f"ط³ط±ظˆط± ط±ظˆغŒ HTTP ط³ط§ط¯ظ‡ (ط¨ط¯ظˆظ† ظ‚ط·ط¹ ط³ط±ظˆغŒط³) ط¨ط§ظ„ط§ ظ…غŒâ€Œط¢غŒط¯."
+        )
         return None, None
 
 
